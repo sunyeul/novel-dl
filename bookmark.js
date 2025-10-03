@@ -10,7 +10,6 @@ javascript: (() => {
 			const script = document.createElement("script");
 			script.textContent = scriptContent;
 			document.head.appendChild(script);
-			console.log("Script loaded and executed.");
 		})
 		.catch((error) => {
 			console.error(error);

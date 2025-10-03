@@ -1,3 +1,9 @@
+// 디버그 로그 설정
+const DEBUG = false; // 개발 시에만 true로 설정
+function debugLog(...args) {
+	if (DEBUG) console.log(...args);
+}
+
 // localStorage 체크포인트 관리 함수
 function saveCheckpoint(novelTitle, startEpisode, endEpisode, completedEpisodes, failedEpisodes, captchaCount, downloadedIndexes) {
 	const checkpoint = {
@@ -13,7 +19,7 @@ function saveCheckpoint(novelTitle, startEpisode, endEpisode, completedEpisodes,
 	const key = `novel-dl-checkpoint-${sanitizeFilename(novelTitle)}`;
 	try {
 		localStorage.setItem(key, JSON.stringify(checkpoint));
-		console.log("[saveCheckpoint] 체크포인트 저장 성공", key, checkpoint);
+		debugLog("[saveCheckpoint] 체크포인트 저장 성공", key, checkpoint);
 		return true;
 	} catch (error) {
 		console.error("[saveCheckpoint] 저장 실패", error);
@@ -26,11 +32,11 @@ function loadCheckpoint(novelTitle) {
 	try {
 		const data = localStorage.getItem(key);
 		if (!data) {
-			console.log("[loadCheckpoint] 체크포인트 없음", key);
+			debugLog("[loadCheckpoint] 체크포인트 없음", key);
 			return null;
 		}
 		const checkpoint = JSON.parse(data);
-		console.log("[loadCheckpoint] 체크포인트 로드 성공", checkpoint);
+		debugLog("[loadCheckpoint] 체크포인트 로드 성공", checkpoint);
 		return checkpoint;
 	} catch (error) {
 		console.error("[loadCheckpoint] 로드 실패", error);
@@ -42,7 +48,7 @@ function clearCheckpoint(novelTitle) {
 	const key = `novel-dl-checkpoint-${sanitizeFilename(novelTitle)}`;
 	try {
 		localStorage.removeItem(key);
-		console.log("[clearCheckpoint] 체크포인트 삭제 성공", key);
+		debugLog("[clearCheckpoint] 체크포인트 삭제 성공", key);
 		return true;
 	} catch (error) {
 		console.error("[clearCheckpoint] 삭제 실패", error);
@@ -51,7 +57,7 @@ function clearCheckpoint(novelTitle) {
 }
 
 async function fetchNovelContent(url) {
-	console.log("[fetchNovelContent] 시작", url);
+	debugLog("[fetchNovelContent] 시작", url);
 	try {
 		const response = await fetch(url);
 
@@ -59,7 +65,6 @@ async function fetchNovelContent(url) {
 			console.error(
 				`서버 오류: ${url}에서 콘텐츠를 가져오는 데 실패했습니다. 상태: ${response.status}`,
 			);
-			console.log("[fetchNovelContent] 서버 응답 실패", response.status);
 			return null;
 		}
 
@@ -80,7 +85,7 @@ async function fetchNovelContent(url) {
 		for (const selector of titleSelectors) {
 			titleElement = doc.querySelector(selector);
 			if (titleElement) {
-				console.log(`[fetchNovelContent] 제목 선택자 발견: ${selector}`);
+				debugLog(`[fetchNovelContent] 제목 선택자 발견: ${selector}`);
 				break;
 			}
 		}
@@ -91,7 +96,7 @@ async function fetchNovelContent(url) {
 				titleElement.getAttribute("title") ||
 				titleElement.textContent.split("<br>")[0].trim() ||
 				"제목 없는 에피소드";
-			console.log("[fetchNovelContent] 추출된 제목:", episodeTitle);
+			debugLog("[fetchNovelContent] 추출된 제목:", episodeTitle);
 		}
 
 		// 여러 콘텐츠 선택자를 시도합니다
@@ -107,14 +112,13 @@ async function fetchNovelContent(url) {
 		for (const selector of contentSelectors) {
 			content = doc.querySelector(selector);
 			if (content) {
-				console.log(`[fetchNovelContent] 콘텐츠 선택자 발견: ${selector}`);
+				debugLog(`[fetchNovelContent] 콘텐츠 선택자 발견: ${selector}`);
 				break;
 			}
 		}
 
 		if (!content) {
 			console.error(`콘텐츠를 찾을 수 없습니다: ${url}`);
-			console.log("[fetchNovelContent] 콘텐츠 요소 없음");
 			return null;
 		}
 
@@ -123,19 +127,18 @@ async function fetchNovelContent(url) {
 			cleanedContent = cleanedContent.slice(episodeTitle.length).trim();
 		}
 
-		console.log(
+		debugLog(
 			"[fetchNovelContent] 정제된 콘텐츠(100자):",
 			cleanedContent.slice(0, 100),
 		);
 
-		console.log("[fetchNovelContent] 종료", { episodeTitle });
+		debugLog("[fetchNovelContent] 종료", { episodeTitle });
 		return {
 			episodeTitle: episodeTitle,
 			content: cleanedContent,
 		};
 	} catch (error) {
 		console.error(`fetchNovelContent 오류: ${error.message}`);
-		console.log("[fetchNovelContent] 예외 발생", error);
 		return null;
 	}
 }
@@ -482,7 +485,7 @@ function sanitizeFilename(name) {
 }
 
 function showSaveOptionsDialog(onSaveOptionSelected) {
-	console.log("[showSaveOptionsDialog] 대화 상자 표시");
+	debugLog("[showSaveOptionsDialog] 대화 상자 표시");
 	const dialog = document.createElement("div");
 	Object.assign(dialog.style, {
 		position: "fixed",
@@ -621,7 +624,7 @@ async function processDownloadLoop(
 	zip,
 	checkpoint = null,
 ) {
-	console.log("[processDownloadLoop] 다운로드 루프 시작");
+	debugLog("[processDownloadLoop] 다운로드 루프 시작");
 	const startingIndex = episodeLinks.length - startEpisode;
 	const endingIndex = episodeLinks.length - endEpisode;
 	const totalEpisodes = startingIndex - endingIndex + 1;
@@ -669,7 +672,7 @@ async function processDownloadLoop(
 				captchaCount,
 				Array.from(downloadedIndexes),
 			);
-			console.log("[processDownloadLoop] 일시정지 및 체크포인트 저장");
+			debugLog("[processDownloadLoop] 일시정지 및 체크포인트 저장");
 		} else {
 			// 재개
 			isPaused = false;
@@ -682,7 +685,7 @@ async function processDownloadLoop(
 				pausePromiseResolve();
 				pausePromiseResolve = null;
 			}
-			console.log("[processDownloadLoop] 다운로드 재개");
+			debugLog("[processDownloadLoop] 다운로드 재개");
 		}
 	};
 
@@ -691,24 +694,24 @@ async function processDownloadLoop(
 	for (let i = startingIndex; i >= endingIndex; i--) {
 		// 일시정지 체크
 		if (isPaused) {
-			console.log("[processDownloadLoop] 일시정지 상태, 대기 중...");
+			debugLog("[processDownloadLoop] 일시정지 상태, 대기 중...");
 			await new Promise((resolve) => {
 				pausePromiseResolve = resolve;
 			});
 		}
 
 		const episodeUrl = episodeLinks[i];
-		console.log(`[processDownloadLoop] ${i}번째 에피소드 URL:`, episodeUrl);
+		debugLog(`[processDownloadLoop] ${i}번째 에피소드 URL:`, episodeUrl);
 		
 		// 이미 다운로드된 에피소드 스킵
 		if (downloadedIndexes.has(i)) {
-			console.log(`[processDownloadLoop] 이미 다운로드됨, 건너뜀: ${i}번째 에피소드`);
+			debugLog(`[processDownloadLoop] 이미 다운로드됨, 건너뜀: ${i}번째 에피소드`);
 			continue;
 		}
 		
 		if (!episodeUrl.startsWith("https://booktoki")) {
 			failedEpisodes++;
-			console.log(`[processDownloadLoop] booktoki URL 아님, 건너뜀: ${episodeUrl}`);
+			debugLog(`[processDownloadLoop] booktoki URL 아님, 건너뜀: ${episodeUrl}`);
 			continue;
 		}
 
@@ -720,7 +723,7 @@ async function processDownloadLoop(
 		if (!result) {
 			captchaCount++;
 			statusElement.textContent = `⚠️ CAPTCHA 감지됨! ${episodeNumber}화를 처리할 수 없습니다.`;
-			console.log(
+			debugLog(
 				`[processDownloadLoop] CAPTCHA 감지, 사용자 확인 대기: ${episodeUrl}`,
 			);
 
@@ -729,7 +732,7 @@ async function processDownloadLoop(
 			);
 			if (!userConfirmed) {
 				failedEpisodes++;
-				console.log(
+				debugLog(
 					`[processDownloadLoop] 사용자 캡챠 미해결, 건너뜀: ${episodeUrl}`,
 				);
 				continue;
@@ -740,13 +743,13 @@ async function processDownloadLoop(
 			if (!result) {
 				statusElement.textContent = `❌ ${episodeNumber}화 다운로드 실패`;
 				failedEpisodes++;
-				console.log(`[processDownloadLoop] 재시도 실패: ${episodeUrl}`);
+				debugLog(`[processDownloadLoop] 재시도 실패: ${episodeUrl}`);
 				continue;
 			}
 		}
 
 		const { episodeTitle, content } = result;
-		console.log(`[processDownloadLoop] 에피소드 다운로드 성공: ${episodeTitle}`);
+		debugLog(`[processDownloadLoop] 에피소드 다운로드 성공: ${episodeTitle}`);
 
 		if (saveAsZip) {
 			zip.file(`${sanitizeFilename(episodeTitle)}.txt`, content);
@@ -770,7 +773,7 @@ async function processDownloadLoop(
 				captchaCount,
 				Array.from(downloadedIndexes),
 			);
-			console.log(`[processDownloadLoop] 체크포인트 자동 저장 (${completedEpisodes}화 완료)`);
+			debugLog(`[processDownloadLoop] 체크포인트 자동 저장 (${completedEpisodes}화 완료)`);
 		}
 
 		progressBar.style.width = `${stats.progress}%`;
@@ -789,7 +792,7 @@ async function processDownloadLoop(
 		await new Promise((r) => setTimeout(r, delayMs));
 	}
 
-	console.log("[processDownloadLoop] 다운로드 루프 종료", {
+	debugLog("[processDownloadLoop] 다운로드 루프 종료", {
 		completedEpisodes,
 		failedEpisodes,
 		captchaCount,
@@ -800,7 +803,7 @@ async function processDownloadLoop(
 	
 	// 다운로드 완료 시 체크포인트 삭제
 	clearCheckpoint(title);
-	console.log("[processDownloadLoop] 체크포인트 삭제 완료");
+	debugLog("[processDownloadLoop] 체크포인트 삭제 완료");
 
 	return { modal, completedEpisodes, novelText };
 }
@@ -814,7 +817,7 @@ function showCompletionDialog(
 	zip,
 	novelText,
 ) {
-	console.log("[showCompletionDialog] 완료 대화 상자 표시");
+	debugLog("[showCompletionDialog] 완료 대화 상자 표시");
 	const completionDialog = document.createElement("div");
 	Object.assign(completionDialog.style, {
 		position: "fixed",
@@ -941,7 +944,7 @@ async function downloadNovel(
 	endEpisode,
 	delayMs = 5000,
 ) {
-	console.log("[downloadNovel] 시작", {
+	debugLog("[downloadNovel] 시작", {
 		title,
 		startEpisode,
 		endEpisode,
@@ -967,15 +970,15 @@ async function downloadNovel(
 			checkpoint = existingCheckpoint;
 			startEpisode = existingCheckpoint.startEpisode;
 			endEpisode = existingCheckpoint.endEpisode;
-			console.log("[downloadNovel] 체크포인트에서 재개", checkpoint);
+			debugLog("[downloadNovel] 체크포인트에서 재개", checkpoint);
 		} else {
 			clearCheckpoint(title);
-			console.log("[downloadNovel] 체크포인트 무시, 새로 시작");
+			debugLog("[downloadNovel] 체크포인트 무시, 새로 시작");
 		}
 	}
 
 	showSaveOptionsDialog(async (saveAsZip) => {
-		console.log("[downloadNovel] 저장 방식:", saveAsZip ? "ZIP" : "단일 파일");
+		debugLog("[downloadNovel] 저장 방식:", saveAsZip ? "ZIP" : "단일 파일");
 		let zip;
 
 		if (saveAsZip) {
@@ -984,9 +987,9 @@ async function downloadNovel(
 					"https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js",
 				);
 				zip = new JSZip();
-				console.log("[downloadNovel] JSZip 로드 성공");
+				debugLog("[downloadNovel] JSZip 로드 성공");
 			} catch (e) {
-				console.log("[downloadNovel] JSZip 로드 실패", e);
+				console.error("[downloadNovel] JSZip 로드 실패", e);
 				alert("ZIP 라이브러리 로드 실패!");
 				return;
 			}
@@ -1004,7 +1007,7 @@ async function downloadNovel(
 		);
 
 		setTimeout(() => {
-			console.log("[downloadNovel] 파일 생성 및 다운로드 버튼 표시");
+			debugLog("[downloadNovel] 파일 생성 및 다운로드 버튼 표시");
 			document.body.removeChild(modal);
 
 			showCompletionDialog(
@@ -1152,7 +1155,7 @@ function createInputGroup(
 }
 
 function showPageInputDialog(title, onPagesConfirmed) {
-	console.log("[showPageInputDialog] 대화 상자 표시");
+	debugLog("[showPageInputDialog] 대화 상자 표시");
 	const dialog = document.createElement("div");
 	Object.assign(dialog.style, {
 		position: "fixed",
@@ -1264,11 +1267,11 @@ function showPageInputDialog(title, onPagesConfirmed) {
 
 	continueButton.onclick = () => {
 		const totalPages = Number.parseInt(pagesInput.input.value, 10);
-		console.log("[showPageInputDialog] 사용자 입력 페이지 수:", totalPages);
+		debugLog("[showPageInputDialog] 사용자 입력 페이지 수:", totalPages);
 
 		if (Number.isNaN(totalPages) || totalPages < 1) {
 			alert("유효한 페이지 수를 입력해주세요.");
-			console.log("[showPageInputDialog] 잘못된 페이지 수 입력");
+			debugLog("[showPageInputDialog] 잘못된 페이지 수 입력");
 			return;
 		}
 
@@ -1284,7 +1287,7 @@ function showPageInputDialog(title, onPagesConfirmed) {
 }
 
 async function fetchAllEpisodeLinks(currentUrl, totalPages) {
-	console.log("[fetchAllEpisodeLinks] 시작", { currentUrl, totalPages });
+	debugLog("[fetchAllEpisodeLinks] 시작", { currentUrl, totalPages });
 	const loadingDialog = document.createElement("div");
 	Object.assign(loadingDialog.style, {
 		position: "fixed",
@@ -1372,25 +1375,25 @@ async function fetchAllEpisodeLinks(currentUrl, totalPages) {
 	for (let page = 1; page <= totalPages; page++) {
 		loadingText.textContent = `페이지 ${page}/${totalPages} 불러오는 중...`;
 		const nextPageUrl = `${currentUrl}?spage=${page}`;
-		console.log(`[fetchAllEpisodeLinks] 페이지 ${page} URL:`, nextPageUrl);
+		debugLog(`[fetchAllEpisodeLinks] 페이지 ${page} URL:`, nextPageUrl);
 		const nextPageDoc = await fetchPage(nextPageUrl);
 		if (nextPageDoc) {
 			const nextPageLinks = Array.from(
 				nextPageDoc.querySelectorAll(".item-subject"),
 			).map((link) => link.getAttribute("href"));
-			console.log(
+			debugLog(
 				`[fetchAllEpisodeLinks] 페이지 ${page} 에피소드 링크 수:`,
 				nextPageLinks.length,
 			);
 			allEpisodeLinks.push(...nextPageLinks);
 			loadingText.textContent = `${allEpisodeLinks.length}개 에피소드 발견됨`;
 		} else {
-			console.log(`[fetchAllEpisodeLinks] 페이지 ${page} 로드 실패`);
+			debugLog(`[fetchAllEpisodeLinks] 페이지 ${page} 로드 실패`);
 		}
 		await new Promise((r) => setTimeout(r, 500));
 	}
 
-	console.log("[fetchAllEpisodeLinks] 전체 에피소드 링크 수:", allEpisodeLinks.length);
+	debugLog("[fetchAllEpisodeLinks] 전체 에피소드 링크 수:", allEpisodeLinks.length);
 
 	document.body.removeChild(loadingDialog);
 
@@ -1414,7 +1417,7 @@ function showRangeInputDialog(
 	allEpisodeLinks,
 	onDownloadConfirmed,
 ) {
-	console.log("[showRangeInputDialog] 대화 상자 표시");
+	debugLog("[showRangeInputDialog] 대화 상자 표시");
 	const rangeDialog = document.createElement("div");
 	Object.assign(rangeDialog.style, {
 		position: "fixed",
@@ -1576,7 +1579,7 @@ function showRangeInputDialog(
 		const startEpisode = Number.parseInt(startInput.input.value, 10);
 		const endEpisode = Number.parseInt(endInput.input.value, 10);
 		const delay = Number.parseInt(delayInput.input.value, 10);
-		console.log("[showRangeInputDialog] 다운로드 범위 입력:", {
+		debugLog("[showRangeInputDialog] 다운로드 범위 입력:", {
 			startEpisode,
 			endEpisode,
 			delay,
@@ -1584,13 +1587,13 @@ function showRangeInputDialog(
 
 		if (!validateDownloadRange(startEpisode, endEpisode, allEpisodeLinks.length)) {
 			alert("유효한 회차 범위를 입력해주세요.");
-			console.log("[showRangeInputDialog] 잘못된 회차 범위 입력");
+			debugLog("[showRangeInputDialog] 잘못된 회차 범위 입력");
 			return;
 		}
 
 		if (Number.isNaN(delay) || delay < 1000) {
 			alert("유효한 딜레이 값을 입력해주세요. (최소 1000ms)");
-			console.log("[showRangeInputDialog] 잘못된 딜레이 입력");
+			debugLog("[showRangeInputDialog] 잘못된 딜레이 입력");
 			return;
 		}
 
@@ -1614,27 +1617,27 @@ function showRangeInputDialog(
 }
 
 async function runCrawler() {
-	console.log("[runCrawler] 시작");
+	debugLog("[runCrawler] 시작");
 	const novelPageRule = "https://booktoki";
 	let currentUrl = window.location.href;
 
 	const urlParts = currentUrl.split("?")[0];
 	currentUrl = urlParts;
 
-	console.log("[runCrawler] 현재 URL:", currentUrl);
+	debugLog("[runCrawler] 현재 URL:", currentUrl);
 
 	if (!currentUrl.startsWith(novelPageRule)) {
 		alert("이 스크립트는 북토기 소설 목록 페이지에서 실행해야 합니다.");
-		console.log("[runCrawler] 북토기 페이지 아님, 종료");
+		debugLog("[runCrawler] 북토기 페이지 아님, 종료");
 		return;
 	}
 
 	const title = extractTitle();
-	console.log("[runCrawler] 추출된 제목:", title);
+	debugLog("[runCrawler] 추출된 제목:", title);
 
 	if (!title) {
 		alert("소설 제목을 추출하지 못했습니다.");
-		console.log("[runCrawler] 제목 추출 실패, 종료");
+		debugLog("[runCrawler] 제목 추출 실패, 종료");
 		return;
 	}
 
@@ -1643,12 +1646,12 @@ async function runCrawler() {
 
 		if (allEpisodeLinks.length === 0) {
 			alert("에피소드 목록을 가져오지 못했습니다.");
-			console.log("[runCrawler] 에피소드 링크 없음, 종료");
+			debugLog("[runCrawler] 에피소드 링크 없음, 종료");
 			return;
 		}
 
 		showRangeInputDialog(allEpisodeLinks, (startEpisode, endEpisode, delay) => {
-			console.log(
+			debugLog(
 				`작업 추가됨: ${title} 다운로드 준비 중 (${startEpisode}화부터 ${endEpisode}화까지)`,
 			);
 			downloadNovel(title, allEpisodeLinks, startEpisode, endEpisode, delay);
