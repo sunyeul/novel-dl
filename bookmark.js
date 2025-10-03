@@ -1,3 +1,4 @@
+// biome-ignore lint(complexity/noUnusedLabels): bookmarklet protocol
 javascript: (() => {
 	fetch("https://raw.githubusercontent.com/yeorinhieut/novel-dl/main/script.js")
 		.then((response) => {
