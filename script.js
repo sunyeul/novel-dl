@@ -1,3 +1,55 @@
+// localStorage 체크포인트 관리 함수
+function saveCheckpoint(novelTitle, startEpisode, endEpisode, completedEpisodes, failedEpisodes, captchaCount, downloadedIndexes) {
+	const checkpoint = {
+		novelTitle,
+		startEpisode,
+		endEpisode,
+		completedEpisodes,
+		failedEpisodes,
+		captchaCount,
+		downloadedIndexes,
+		timestamp: Date.now(),
+	};
+	const key = `novel-dl-checkpoint-${sanitizeFilename(novelTitle)}`;
+	try {
+		localStorage.setItem(key, JSON.stringify(checkpoint));
+		console.log("[saveCheckpoint] 체크포인트 저장 성공", key, checkpoint);
+		return true;
+	} catch (error) {
+		console.error("[saveCheckpoint] 저장 실패", error);
+		return false;
+	}
+}
+
+function loadCheckpoint(novelTitle) {
+	const key = `novel-dl-checkpoint-${sanitizeFilename(novelTitle)}`;
+	try {
+		const data = localStorage.getItem(key);
+		if (!data) {
+			console.log("[loadCheckpoint] 체크포인트 없음", key);
+			return null;
+		}
+		const checkpoint = JSON.parse(data);
+		console.log("[loadCheckpoint] 체크포인트 로드 성공", checkpoint);
+		return checkpoint;
+	} catch (error) {
+		console.error("[loadCheckpoint] 로드 실패", error);
+		return null;
+	}
+}
+
+function clearCheckpoint(novelTitle) {
+	const key = `novel-dl-checkpoint-${sanitizeFilename(novelTitle)}`;
+	try {
+		localStorage.removeItem(key);
+		console.log("[clearCheckpoint] 체크포인트 삭제 성공", key);
+		return true;
+	} catch (error) {
+		console.error("[clearCheckpoint] 삭제 실패", error);
+		return false;
+	}
+}
+
 async function fetchNovelContent(url) {
 	console.log("[fetchNovelContent] 시작", url);
 	try {
@@ -309,6 +361,40 @@ function createModal(title, isBusyRef) {
 	});
 	body.appendChild(detailedProgress);
 
+	// 일시정지/재개 버튼 컨테이너 생성
+	const controlButtonsContainer = document.createElement("div");
+	Object.assign(controlButtonsContainer.style, {
+		marginTop: "20px",
+		display: "flex",
+		gap: "8px",
+		justifyContent: "center",
+	});
+
+	// 일시정지/재개 버튼 생성
+	const pauseResumeButton = document.createElement("button");
+	pauseResumeButton.textContent = "일시정지";
+	pauseResumeButton.dataset.isPaused = "false";
+	Object.assign(pauseResumeButton.style, {
+		backgroundColor: "#ff9800",
+		color: "white",
+		border: "none",
+		padding: "10px 20px",
+		borderRadius: "8px",
+		fontSize: "14px",
+		fontWeight: "500",
+		cursor: "pointer",
+		transition: "background-color 0.2s",
+	});
+	pauseResumeButton.onmouseover = () => {
+		pauseResumeButton.style.backgroundColor = pauseResumeButton.dataset.isPaused === "true" ? "#388e3c" : "#f57c00";
+	};
+	pauseResumeButton.onmouseout = () => {
+		pauseResumeButton.style.backgroundColor = pauseResumeButton.dataset.isPaused === "true" ? "#4CAF50" : "#ff9800";
+	};
+	controlButtonsContainer.appendChild(pauseResumeButton);
+
+	body.appendChild(controlButtonsContainer);
+
 	modal.appendChild(modalContent);
 
 	return {
@@ -319,6 +405,7 @@ function createModal(title, isBusyRef) {
 		progressBar,
 		detailedProgress,
 		closeButton,
+		pauseResumeButton,
 	};
 }
 
@@ -588,6 +675,7 @@ async function processDownloadLoop(
 	delayMs,
 	saveAsZip,
 	zip,
+	checkpoint = null,
 ) {
 	console.log("[processDownloadLoop] 다운로드 루프 시작");
 	const startingIndex = episodeLinks.length - startEpisode;
@@ -601,21 +689,79 @@ async function processDownloadLoop(
 		timeRemaining,
 		progressBar,
 		detailedProgress,
+		pauseResumeButton,
 	} = createModal(`"${title}" 다운로드 중`, { value: true });
 
 	document.body.appendChild(modal);
 
 	const progressTracker = createProgressTracker(totalEpisodes);
 	let novelText = `${title}\n\nnovel-dl로 다운로드됨,\nhttps://github.com/yeorinhieut/novel-dl\n\n`;
-	let completedEpisodes = 0;
-	let failedEpisodes = 0;
-	let captchaCount = 0;
+	let completedEpisodes = checkpoint ? checkpoint.completedEpisodes : 0;
+	let failedEpisodes = checkpoint ? checkpoint.failedEpisodes : 0;
+	let captchaCount = checkpoint ? checkpoint.captchaCount : 0;
+	const downloadedIndexes = checkpoint ? new Set(checkpoint.downloadedIndexes) : new Set();
+	
+	// 일시정지 플래그
+	let isPaused = false;
+	let pausePromiseResolve = null;
 
-	statusElement.textContent = "다운로드를 준비하는 중...";
+	// 일시정지/재개 버튼 이벤트 핸들러
+	pauseResumeButton.onclick = () => {
+		if (!isPaused) {
+			// 일시정지
+			isPaused = true;
+			pauseResumeButton.textContent = "재개";
+			pauseResumeButton.dataset.isPaused = "true";
+			pauseResumeButton.style.backgroundColor = "#4CAF50";
+			statusElement.textContent = "⏸️ 일시정지됨 - 재개 버튼을 눌러주세요";
+			
+			// 체크포인트 저장
+			saveCheckpoint(
+				title,
+				startEpisode,
+				endEpisode,
+				completedEpisodes,
+				failedEpisodes,
+				captchaCount,
+				Array.from(downloadedIndexes),
+			);
+			console.log("[processDownloadLoop] 일시정지 및 체크포인트 저장");
+		} else {
+			// 재개
+			isPaused = false;
+			pauseResumeButton.textContent = "일시정지";
+			pauseResumeButton.dataset.isPaused = "false";
+			pauseResumeButton.style.backgroundColor = "#ff9800";
+			statusElement.textContent = "다운로드 재개 중...";
+			
+			if (pausePromiseResolve) {
+				pausePromiseResolve();
+				pausePromiseResolve = null;
+			}
+			console.log("[processDownloadLoop] 다운로드 재개");
+		}
+	};
+
+	statusElement.textContent = checkpoint ? "체크포인트에서 다운로드 재개 중..." : "다운로드를 준비하는 중...";
 
 	for (let i = startingIndex; i >= endingIndex; i--) {
+		// 일시정지 체크
+		if (isPaused) {
+			console.log("[processDownloadLoop] 일시정지 상태, 대기 중...");
+			await new Promise((resolve) => {
+				pausePromiseResolve = resolve;
+			});
+		}
+
 		const episodeUrl = episodeLinks[i];
 		console.log(`[processDownloadLoop] ${i}번째 에피소드 URL:`, episodeUrl);
+		
+		// 이미 다운로드된 에피소드 스킵
+		if (downloadedIndexes.has(i)) {
+			console.log(`[processDownloadLoop] 이미 다운로드됨, 건너뜀: ${i}번째 에피소드`);
+			continue;
+		}
+		
 		if (!episodeUrl.startsWith("https://booktoki")) {
 			failedEpisodes++;
 			console.log(`[processDownloadLoop] booktoki URL 아님, 건너뜀: ${episodeUrl}`);
@@ -664,8 +810,24 @@ async function processDownloadLoop(
 			novelText += `${episodeTitle}\n\n${content}\n\n`;
 		}
 
+		// 다운로드 완료한 인덱스 기록
+		downloadedIndexes.add(i);
 		completedEpisodes++;
 		const stats = progressTracker.update(completedEpisodes);
+		
+		// 주기적으로 체크포인트 저장 (5화마다)
+		if (completedEpisodes % 5 === 0) {
+			saveCheckpoint(
+				title,
+				startEpisode,
+				endEpisode,
+				completedEpisodes,
+				failedEpisodes,
+				captchaCount,
+				Array.from(downloadedIndexes),
+			);
+			console.log(`[processDownloadLoop] 체크포인트 자동 저장 (${completedEpisodes}화 완료)`);
+		}
 
 		progressBar.style.width = `${stats.progress}%`;
 		progressText.textContent = `${stats.progress}%`;
@@ -691,6 +853,10 @@ async function processDownloadLoop(
 	statusElement.textContent = "✅ 다운로드 완료, 파일 생성 중...";
 	progressBar.style.width = "100%";
 	progressText.textContent = "100%";
+	
+	// 다운로드 완료 시 체크포인트 삭제
+	clearCheckpoint(title);
+	console.log("[processDownloadLoop] 체크포인트 삭제 완료");
 
 	return { modal, completedEpisodes, novelText };
 }
@@ -898,6 +1064,32 @@ async function downloadNovel(
 		delayMs,
 	});
 
+	// 기존 체크포인트 확인
+	const existingCheckpoint = loadCheckpoint(title);
+	let checkpoint = null;
+	
+	if (existingCheckpoint) {
+		const resumeConfirmed = confirm(
+			`이전에 중단된 다운로드를 발견했습니다!\n\n` +
+			`소설: ${existingCheckpoint.novelTitle}\n` +
+			`진행률: ${existingCheckpoint.completedEpisodes}화 완료\n` +
+			`범위: ${existingCheckpoint.startEpisode}화 ~ ${existingCheckpoint.endEpisode}화\n` +
+			`실패: ${existingCheckpoint.failedEpisodes}화\n\n` +
+			`이어서 다운로드하시겠습니까?\n` +
+			`(취소 시 새로 시작합니다)`
+		);
+		
+		if (resumeConfirmed) {
+			checkpoint = existingCheckpoint;
+			startEpisode = existingCheckpoint.startEpisode;
+			endEpisode = existingCheckpoint.endEpisode;
+			console.log("[downloadNovel] 체크포인트에서 재개", checkpoint);
+		} else {
+			clearCheckpoint(title);
+			console.log("[downloadNovel] 체크포인트 무시, 새로 시작");
+		}
+	}
+
 	showSaveOptionsDialog(async (saveAsZip) => {
 		console.log("[downloadNovel] 저장 방식:", saveAsZip ? "ZIP" : "단일 파일");
 		let zip;
@@ -924,6 +1116,7 @@ async function downloadNovel(
 			delayMs,
 			saveAsZip,
 			zip,
+			checkpoint,
 		);
 
 		setTimeout(() => {
