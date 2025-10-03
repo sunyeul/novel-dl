@@ -607,62 +607,6 @@ function showSaveOptionsDialog(onSaveOptionSelected) {
 
 	dialogContent.appendChild(cancelButton);
 
-	const contactContainer = document.createElement("div");
-	Object.assign(contactContainer.style, {
-		marginTop: "16px",
-		textAlign: "center",
-		fontSize: "13px",
-	});
-
-	const contactLink = document.createElement("a");
-	contactLink.href = "mailto:yeorinhieut@gmail.com";
-	contactLink.textContent = "개발자에게 연락하기";
-	Object.assign(contactLink.style, {
-		color: "#666",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	contactLink.onmouseover = () => {
-		contactLink.style.color = "#3a7bd5";
-		contactLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	contactLink.onmouseout = () => {
-		contactLink.style.color = "#666";
-		contactLink.style.borderBottom = "1px dotted #999";
-	};
-
-	contactContainer.appendChild(contactLink);
-
-	const separator = document.createElement("span");
-	separator.textContent = " · ";
-	separator.style.color = "#999";
-	contactContainer.appendChild(separator);
-
-	const issueLink = document.createElement("a");
-	issueLink.href = "https://github.com/yeorinhieut/novel-dl/issues";
-	issueLink.textContent = "오류 제보하기";
-	issueLink.target = "_blank";
-	Object.assign(issueLink.style, {
-		color: "#666",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	issueLink.onmouseover = () => {
-		issueLink.style.color = "#3a7bd5";
-		issueLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	issueLink.onmouseout = () => {
-		issueLink.style.color = "#666";
-		issueLink.style.borderBottom = "1px dotted #999";
-	};
-
-	contactContainer.appendChild(issueLink);
-	dialogContent.appendChild(contactContainer);
-
 	dialog.appendChild(dialogContent);
 	document.body.appendChild(dialog);
 }
@@ -985,58 +929,6 @@ function showCompletionDialog(
 	};
 
 	completionContent.appendChild(downloadBtn);
-
-	const contactLink = document.createElement("a");
-	contactLink.href = "mailto:yeorinhieut@gmail.com";
-	contactLink.textContent = "개발자에게 연락하기";
-	Object.assign(contactLink.style, {
-		display: "inline-block",
-		color: "#666",
-		fontSize: "13px",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	contactLink.onmouseover = () => {
-		contactLink.style.color = "#3a7bd5";
-		contactLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	contactLink.onmouseout = () => {
-		contactLink.style.color = "#666";
-		contactLink.style.borderBottom = "1px dotted #999";
-	};
-
-	completionContent.appendChild(contactLink);
-
-	const separator = document.createElement("span");
-	separator.textContent = " · ";
-	separator.style.color = "#999";
-	separator.style.fontSize = "13px";
-	completionContent.appendChild(separator);
-
-	const issueLink = document.createElement("a");
-	issueLink.href = "https://github.com/yeorinhieut/novel-dl/issues";
-	issueLink.textContent = "오류 제보하기";
-	issueLink.target = "_blank";
-	Object.assign(issueLink.style, {
-		color: "#666",
-		fontSize: "13px",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	issueLink.onmouseover = () => {
-		issueLink.style.color = "#3a7bd5";
-		issueLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	issueLink.onmouseout = () => {
-		issueLink.style.color = "#666";
-		issueLink.style.borderBottom = "1px dotted #999";
-	};
-
-	completionContent.appendChild(issueLink);
 
 	completionDialog.appendChild(completionContent);
 	document.body.appendChild(completionDialog);
@@ -1709,63 +1601,6 @@ function showRangeInputDialog(
 	rangeButtons.appendChild(downloadButton);
 
 	rangeContent.appendChild(rangeButtons);
-
-	const contactContainer = document.createElement("div");
-	Object.assign(contactContainer.style, {
-		marginTop: "16px",
-		textAlign: "center",
-		fontSize: "13px",
-	});
-
-	const contactLink = document.createElement("a");
-	contactLink.href = "mailto:yeorinhieut@gmail.com";
-	contactLink.textContent = "개발자에게 연락하기";
-	Object.assign(contactLink.style, {
-		color: "#666",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	contactLink.onmouseover = () => {
-		contactLink.style.color = "#3a7bd5";
-		contactLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	contactLink.onmouseout = () => {
-		contactLink.style.color = "#666";
-		contactLink.style.borderBottom = "1px dotted #999";
-	};
-
-	contactContainer.appendChild(contactLink);
-
-	const separator = document.createElement("span");
-	separator.textContent = " · ";
-	separator.style.color = "#999";
-	contactContainer.appendChild(separator);
-
-	const issueLink = document.createElement("a");
-	issueLink.href = "https://github.com/yeorinhieut/novel-dl/issues";
-	issueLink.textContent = "오류 제보하기";
-	issueLink.target = "_blank";
-	Object.assign(issueLink.style, {
-		color: "#666",
-		fontSize: "13px",
-		textDecoration: "none",
-		borderBottom: "1px dotted #999",
-	});
-
-	issueLink.onmouseover = () => {
-		issueLink.style.color = "#3a7bd5";
-		issueLink.style.borderBottom = "1px dotted #3a7bd5";
-	};
-
-	issueLink.onmouseout = () => {
-		issueLink.style.color = "#666";
-		issueLink.style.borderBottom = "1px dotted #999";
-	};
-
-	contactContainer.appendChild(issueLink);
-	rangeContent.appendChild(contactContainer);
 
 	rangeDialog.appendChild(rangeContent);
 	document.body.appendChild(rangeDialog);
